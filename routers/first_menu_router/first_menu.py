@@ -1,11 +1,13 @@
 from aiogram import Router, F, types
 import asyncio
+import logging
 from datetime import datetime, timedelta
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import StateFilter
 
 from base.booking import *
+from base.database import *
 from routers.first_menu_router.first_menu_kb import *
 from routers.first_menu_router.first_menu_booking import *
 from routers.first_menu_router.timer import *
@@ -82,6 +84,8 @@ async def receive_interval_time_f(callback: types.CallbackQuery, state: FSMConte
     end_time = datetime.strptime(end_hour, "%H:%M").replace(year=datetime.now().year, month=datetime.now().month,
                                                             day=datetime.now().day)
 
+    user_id = callback.from_user.id
+    add_timer(user_id, start_time.isoformat(), end_time.isoformat(), (end_time - start_time).seconds // 3600)
 
 
     await callback.answer()  # Удаляем уведомление
@@ -98,40 +102,35 @@ async def receive_interval_time_f(callback: types.CallbackQuery, state: FSMConte
 @first_menu_router.message(F.text.startswith("⏳ Когда курить?"))
 async def when_to_smoke_fm(message: types.Message):
     try:
-        global current_day, start_time, end_time
+        user_id = message.from_user.id
+        timer = get_timer(user_id)
 
-        days_passed = (datetime.now() - start_time).days
-        current_day = min(days_passed + 1, 25)
-        cigarettes_per_day, interval_hours = smoking_schedule[current_day]
+        if not timer:
+            await message.answer('Вы не установили таймер.\n\nВоспользуйтесь кнопкой "Сброс" в меню.')
+            return
 
-        smoking_times = []
-        for i in range(cigarettes_per_day):
-            smoke_time = start_time + timedelta(hours=i * interval_hours)
-            smoking_times.append(smoke_time)
+        start_time = datetime.strptime(timer[2], '%Y-%m-%dT%H:%M:%S')
+        end_time = datetime.strptime(timer[3], '%Y-%m-%dT%H:%M:%S')
+        interval_hours = timer[4]
 
         current_time = datetime.now().replace(second=0, microsecond=0)
 
-        next_smoke_time = None
-        for smoke_time in smoking_times:
-            if smoke_time > current_time:
-                next_smoke_time = smoke_time
-                break
-        if next_smoke_time is None:
+        next_smoke_time = start_time
+        while next_smoke_time <= current_time:
+            next_smoke_time += timedelta(hours=interval_hours)
+
+        if next_smoke_time > end_time:
             await message.answer("Все запланированные времена курения на сегодня уже прошли.")
             return
 
         time_until_next_smoke = next_smoke_time - current_time
-        hours, remainder = divmod(time_until_next_smoke.seconds, 3600)
+        hours, remainder = divmod(time_until_next_smoke.total_seconds(), 3600)
         minutes, _ = divmod(remainder, 60)
 
         response_message = f"Следующее время курения: {next_smoke_time.strftime('%H:%M')}. " \
-                           f"Осталось времени: {hours} ч {minutes} мин."
+                           f"Осталось времени: {int(hours)} ч {int(minutes)} мин."
         await message.answer(response_message)
 
-        if not start_time or not end_time:
-            await message.answer('Вы не установили таймер.\n\nВоспользуйтесь кнопкой "Сброс" в меню.')
-            return
-
-    except:
-        await message.answer('Вы не установили таймер.\n\nВоспользуйтесь кнопкой "Сброс" в меню.')
-
+    except Exception as e:
+        logging.error(f"Ошибка в обработчике when_to_smoke_fm: {e}")
+        await message.answer('Произошла ошибка. Попробуйте снова.')
