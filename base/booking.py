@@ -11,8 +11,8 @@ about_message = (
 
 def kb_about():
     kb_list = [
-        [InlineKeyboardButton(text="Донат", url="https://t.me/ateccc")],
-        [InlineKeyboardButton(text="Другие проекты", url="https://t.me/ateccc")],
+        [InlineKeyboardButton(text="Донат", callback_data="donat_donat")],
+        [InlineKeyboardButton(text="Другие проекты", url="https://github.com/gostok?tab=repositories")],
         [InlineKeyboardButton(text="Сотрудничать", url="https://t.me/ateccc")]
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=kb_list, resize_keyboard=True)
