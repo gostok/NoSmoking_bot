@@ -1,6 +1,5 @@
 from aiogram import Router, types, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, CallbackQuery
 
 
 from routers.start_router.start_booking import *
@@ -14,9 +13,26 @@ from base.database import *
 
 start_router = Router()
 
+
+
+
 @start_router.message(CommandStart())
 async def cmd_start(message: types.Message):
     await message.answer(start_message, reply_markup=start_kb())
+
+
+
+@start_router.message(F.text.startswith("Вернуться назад"))
+async def back_start_menu(message: types.Message):
+    user = get_user(message.from_user.id)
+    if user:
+        plan = user[3]
+        if plan == 'Бросить курить':
+            await message.answer('Вы вернулись в главное меню:', reply_markup=first_menu_kb())
+        elif plan == 'Таймер курения':
+            await message.answer('Вы вернулись в главное меню:', reply_markup=second_menu_kb())
+        else:
+            await message.answer(start_message, reply_markup=start_kb())
 
 
 @start_router.message(F.text.startswith("About"))
@@ -74,3 +90,10 @@ async def about_kb_main(message: types.Message):
         await message.answer('Вы уже зарегистрированы.')
     else:
         await message.answer(reg_start_message, reply_markup=main_menu_kb())
+
+
+@start_router.message(Command("/get_users_all"))
+async def get_users_all(message: types.Message):
+    users_count = get_users_count()
+
+    await message.answer(f"Количество зарегистрированных пользователей: {users_count}")

@@ -24,7 +24,8 @@ def kb_confirm():
 def kb_plan():
     kb_list = [
         [KeyboardButton(text="1. Бросить курить")],
-        [KeyboardButton(text="2. Таймер курения")]
+        [KeyboardButton(text="2. Таймер курения")],
+        [KeyboardButton(text="Вернуться назад")]
     ]
     kb = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True)
     return kb

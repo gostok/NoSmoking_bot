@@ -17,9 +17,7 @@ class RegistrationStates(StatesGroup):
     waiting_for_plan = State()
     waiting_for_confirmation = State()
 
-@main_menu.message(F.text.startswith("Вернуться назад"))
-async def back_kb(message: types.Message):
-    await message.answer('Вы вернулись назад.', reply_markup=start_kb())
+
 
 
 @main_menu.message(F.text.startswith("Начать регистрацию"))
